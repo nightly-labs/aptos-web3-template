@@ -47,7 +47,10 @@ const StickyHeader: React.FC = () => {
                 const accountInfo = await adapter.connect()
                 setAddress(accountInfo.address.toString())
               } catch (error) {
-                await adapter.disconnect().then(() => {})
+                await adapter
+                  .disconnect()
+                  .then(() => {})
+                  .catch(() => {})
                 console.log(error)
               }
             }}

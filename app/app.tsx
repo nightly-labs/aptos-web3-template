@@ -11,10 +11,10 @@ export default function Home() {
     <>
       <Background />
       <StickyHeader />
-      {/* <Torus />
       <Toaster position='bottom-left' richColors />
+      <Torus />
       <Socials />
-      <Loader /> */}
+      <Loader />
     </>
   )
 }

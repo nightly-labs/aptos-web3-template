@@ -1,48 +1,60 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useEffect } from 'react'
-import { toast } from 'sonner'
-import { getAdapter } from '../misc/adapter'
-import ActionStarryButton from './ActionStarryButton'
-import StarryButton from './StarryButton'
-import { AccountInfo, AptosSignMessageInput, UserResponseStatus } from '@aptos-labs/wallet-standard'
-import { getAptos } from '../misc/aptos'
+import {
+  Account,
+  AccountAddress,
+  AptosApiType,
+  Ed25519PrivateKey,
+  get,
+  MoveVector,
+  RotationProofChallenge,
+  U8,
+} from "@aptos-labs/ts-sdk";
+import { AccountInfo, UserResponseStatus } from "@aptos-labs/wallet-standard";
+import React, { useEffect } from "react";
+import { toast } from "sonner";
+import { getAdapter } from "../misc/adapter";
+import { getAptos } from "../misc/aptos";
+import ActionStarryButton from "./ActionStarryButton";
+import StarryButton from "./StarryButton";
 
 const StickyHeader: React.FC = () => {
-  const [userAccount, setUserAccount] = React.useState<AccountInfo | undefined>()
+  const [userAccount, setUserAccount] = React.useState<
+    AccountInfo | undefined
+  >();
   useEffect(() => {
     const init = async () => {
-      const adapter = await getAdapter()
+      const adapter = await getAdapter();
       if (await adapter.canEagerConnect()) {
         try {
-          const response = await adapter.connect()
+          const response = await adapter.connect();
           if (response.status === UserResponseStatus.APPROVED) {
-            setUserAccount(response.args)
+            setUserAccount(response.args);
           }
         } catch (error) {
-          await adapter.disconnect().catch(() => {})
-          console.log(error)
+          await adapter.disconnect().catch(() => {});
+          console.log(error);
         }
       }
       // Events
-      adapter.on('connect', (accInfo) => {
-        setUserAccount(accInfo)
-      })
+      adapter.on("connect", (accInfo) => {
+        setUserAccount(accInfo);
+      });
 
-      adapter.on('disconnect', () => {
-        setUserAccount(undefined)
-        console.log('adapter disconnected')
-      })
+      adapter.on("disconnect", () => {
+        setUserAccount(undefined);
+        console.log("adapter disconnected");
+      });
 
-      adapter.on('accountChange', (accInfo) => {
-        setUserAccount(accInfo)
-      })
-    }
-    init()
+      adapter.on("accountChange", (accInfo) => {
+        setUserAccount(accInfo);
+      });
+    };
+    init();
     // Try eagerly connect
-  }, [])
+  }, []);
   return (
-    <header className='fixed top-0 left-0 w-full bg-opacity-50  p-6 z-10'>
-      <div className='flex items-center justify-between'>
+    <header className="fixed top-0 left-0 w-full bg-opacity-50  p-6 z-10">
+      <div className="flex items-center justify-between">
         <div>
           {/* <Image
             style={{ width: '200px', cursor: 'pointer' }}
@@ -54,32 +66,32 @@ const StickyHeader: React.FC = () => {
             }}
           /> */}
         </div>
-        <div className='flex flex-col space-y-4'>
+        <div className="flex flex-col space-y-4">
           <StarryButton
             connected={userAccount?.address !== undefined}
             onConnect={async () => {
-              const adapter = await getAdapter()
+              const adapter = await getAdapter();
               try {
-                const response = await adapter.connect()
+                const response = await adapter.connect();
                 if (response.status === UserResponseStatus.APPROVED) {
-                  setUserAccount(response.args)
-                  toast.success('Wallet connected!')
+                  setUserAccount(response.args);
+                  toast.success("Wallet connected!");
                 } else {
-                  toast.error('User rejected connection')
+                  toast.error("User rejected connection");
                 }
               } catch (error) {
-                toast.error('Wallet connection failed!')
+                toast.error("Wallet connection failed!");
                 // If error, disconnect ignore error
-                await adapter.disconnect().catch(() => {})
+                await adapter.disconnect().catch(() => {});
               }
             }}
             onDisconnect={async () => {
               try {
-                const adapter = await getAdapter()
-                await adapter.disconnect()
-                setUserAccount(undefined)
+                const adapter = await getAdapter();
+                await adapter.disconnect();
+                setUserAccount(undefined);
               } catch (error) {
-                console.log(error)
+                console.log(error);
               }
             }}
             publicKey={userAccount?.address.toString()}
@@ -89,96 +101,196 @@ const StickyHeader: React.FC = () => {
               <ActionStarryButton
                 onClick={async () => {
                   const signTransaction = async () => {
-                    const adapter = await getAdapter()
-                    const aptos = getAptos()
+                    const adapter = await getAdapter();
+                    const aptos = getAptos();
                     const transaction = await aptos.transaction.build.simple({
                       sender: userAccount!.address.toString(),
                       data: {
-                        function: '0x1::coin::transfer',
-                        typeArguments: ['0x1::aptos_coin::AptosCoin'],
+                        function: "0x1::coin::transfer",
+                        typeArguments: ["0x1::aptos_coin::AptosCoin"],
                         functionArguments: [
-                          '0x7d6735f1d1b158ea340f252e0d30c4ab5596fc12bbf5267f43ac45989b9fd520',
+                          "0x7d6735f1d1b158ea340f252e0d30c4ab5596fc12bbf5267f43ac45989b9fd520",
                           100,
                         ],
                       },
-                    })
+                    });
                     const signedTx = await adapter.signAndSubmitTransaction({
                       rawTransaction: transaction.rawTransaction,
-                    })
+                    });
                     if (signedTx.status !== UserResponseStatus.APPROVED) {
-                      throw new Error('Transaction rejected')
+                      throw new Error("Transaction rejected");
                     }
-                  }
+                  };
                   toast.promise(signTransaction, {
-                    loading: 'Signing Transaction...',
+                    loading: "Signing Transaction...",
                     success: (_) => {
-                      return `Transaction signed!`
+                      return `Transaction signed!`;
                     },
-                    error: 'Operation has been rejected!',
-                  })
+                    error: "Operation has been rejected!",
+                  });
                 }}
-                name='Sign and Submit'
+                name="Sign and Submit"
               ></ActionStarryButton>
               <ActionStarryButton
                 onClick={async () => {
                   const signTransaction = async () => {
-                    const adapter = await getAdapter()
-                    const aptos = getAptos()
+                    const adapter = await getAdapter();
+                    const aptos = getAptos();
                     const transaction = await aptos.transaction.build.simple({
                       sender: userAccount!.address.toString(),
                       data: {
-                        function: '0x1::coin::transfer',
-                        typeArguments: ['0x1::aptos_coin::AptosCoin'],
+                        function: "0x1::coin::transfer",
+                        typeArguments: ["0x1::aptos_coin::AptosCoin"],
                         functionArguments: [
-                          '0x7d6735f1d1b158ea340f252e0d30c4ab5596fc12bbf5267f43ac45989b9fd520',
+                          "0x7d6735f1d1b158ea340f252e0d30c4ab5596fc12bbf5267f43ac45989b9fd520",
                           100,
                         ],
                       },
-                    })
+                    });
                     const signedTx = await adapter.signTransaction({
                       rawTransaction: transaction.rawTransaction,
-                    })
+                    });
                     if (signedTx.status !== UserResponseStatus.APPROVED) {
-                      throw new Error('Transaction rejected')
+                      throw new Error("Transaction rejected");
                     }
-                  }
+                  };
                   toast.promise(signTransaction, {
-                    loading: 'Signing Transaction...',
+                    loading: "Signing Transaction...",
                     success: (_) => {
-                      return `Transaction signed!`
+                      return `Transaction signed!`;
                     },
-                    error: 'Operation has been rejected!',
-                  })
+                    error: "Operation has been rejected!",
+                  });
                 }}
-                name='Sign Transaction'
+                name="Sign Transaction"
               ></ActionStarryButton>
-
               <ActionStarryButton
                 onClick={async () => {
                   const signMessage = async () => {
-                    const adapter = await getAdapter()
+                    const adapter = await getAdapter();
                     await adapter.signMessage({
-                      message: 'I love Nightly',
+                      message: "I love Nightly",
                       address: true,
-                      nonce: 'YOLO',
-                    })
-                  }
+                      nonce: "YOLO",
+                    });
+                  };
                   toast.promise(signMessage, {
-                    loading: 'Signing message...',
+                    loading: "Signing message...",
                     success: (_) => {
-                      return `Message signed!`
+                      return `Message signed!`;
                     },
-                    error: 'Operation has been rejected!',
-                  })
+                    error: "Operation has been rejected!",
+                  });
                 }}
-                name='Sign Message'
+                name="Sign Message"
+              ></ActionStarryButton>
+              <ActionStarryButton
+                onClick={async () => {
+                  const signTransaction = async () => {
+                    const adapter = await getAdapter();
+                    const aptos = getAptos();
+
+                    // const fromAccount = Account.fromPrivateKey({
+                    //   privateKey: new Ed25519PrivateKey(
+                    //     "912adb5babe317cb451df0baa756f51a96a1f9802f1423da53ee5fceba55201e"
+                    //   ),
+                    // });
+
+                    const newAccount = Account.fromPrivateKey({
+                      privateKey: new Ed25519PrivateKey(
+                        "25be971b8ef7fb9e1f8ff4a0acf6d96fb1ae1d8acc7e9b027c31f74d50475cbd"
+                      ),
+                      legacy: true,
+                    });
+
+                    const { data: accountInfo } = (await get({
+                      aptosConfig: aptos.config,
+                      type: AptosApiType.FULLNODE,
+                      originMethod: "getInfo",
+                      path: `accounts/${userAccount.address.toString()}`,
+                    })) as any;
+
+                    const address = AccountAddress.fromString(
+                      userAccount.publicKey.toString()
+                    );
+
+                    const challenge = new RotationProofChallenge({
+                      sequenceNumber: BigInt(accountInfo.sequence_number),
+                      originator: address,
+                      currentAuthKey: AccountAddress.from(
+                        accountInfo.authentication_key
+                      ),
+                      newPublicKey: newAccount.publicKey,
+                    });
+
+                    const challengeHex = challenge.bcsToBytes();
+                    const textDecoder = new TextDecoder();
+                    const string = textDecoder.decode(challengeHex);
+
+                    const data = await adapter.signMessage({
+                      message: string,
+                      address: true,
+                      nonce: "change access",
+                    });
+
+                    // missing logic
+                    const proofSignedByCurrentPrivateKey: any =
+                      //@ts-expect-error
+                      data.args.signature;
+
+                    const proofSignedByNewPrivateKey =
+                      newAccount.sign(challengeHex);
+
+                    const transaction = await aptos.transaction.build.simple({
+                      sender: userAccount!.address.toString(),
+                      data: {
+                        function: "0x1::account::rotate_authentication_key",
+                        typeArguments: [],
+
+                        functionArguments: [
+                          new U8(0), // from scheme
+                          MoveVector.U8(userAccount.publicKey.toUint8Array()),
+                          new U8(newAccount.signingScheme), // to scheme
+                          MoveVector.U8(newAccount.publicKey.toUint8Array()),
+                          MoveVector.U8(
+                            proofSignedByCurrentPrivateKey.toUint8Array()
+                          ),
+                          MoveVector.U8(
+                            proofSignedByNewPrivateKey.toUint8Array()
+                          ),
+                        ],
+                      },
+                    });
+
+                    //@ts-expect-error rawTransaction
+                    const signedTx = await adapter.signAndSubmitTransaction({
+                      rawTransaction: transaction.rawTransaction,
+                    });
+
+                    if (signedTx.status !== UserResponseStatus.APPROVED) {
+                      throw new Error("Transaction rejected");
+                    }
+                  };
+
+                  toast.promise(signTransaction, {
+                    loading: "Signing Transaction...",
+                    success: (_) => {
+                      return `Transaction signed!`;
+                    },
+                    error: (err) => {
+                      console.log(err);
+                      return "Operation has been rejected!";
+                    },
+                  });
+                }}
+                name="Change ownership"
               ></ActionStarryButton>
             </>
           )}
         </div>
       </div>
     </header>
-  )
-}
+  );
+};
 
-export default StickyHeader
+export default StickyHeader;

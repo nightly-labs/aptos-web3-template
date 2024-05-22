@@ -2,27 +2,24 @@
 import {
   Account,
   AccountAddress,
-  AptosApiType,
-  Ed25519PrivateKey,
-  Ed25519Signature,
-  get,
-  MoveVector,
-  RotationProofChallenge,
-  U8,
-  generateRawTransaction,
-  generateTransactionPayloadWithABI,
-  TypeTagU8,
-  TypeTagVector,
-  EntryFunctionABI,
   AnyRawTransaction,
   AnyTransactionPayloadInstance,
+  AptosApiType,
   AptosConfig,
+  buildTransaction,
+  Ed25519PrivateKey,
+  EntryFunctionABI,
+  generateTransactionPayload,
+  get,
+  Hex,
   InputGenerateMultiAgentRawTransactionData,
   InputGenerateTransactionData,
   InputGenerateTransactionPayloadDataWithRemoteABI,
-  buildTransaction,
-  generateTransactionPayload,
-  Hex,
+  MoveVector,
+  RotationProofChallenge,
+  TypeTagU8,
+  TypeTagVector,
+  U8,
 } from "@aptos-labs/ts-sdk";
 import { AccountInfo, UserResponseStatus } from "@aptos-labs/wallet-standard";
 import React, { useEffect } from "react";
@@ -290,12 +287,6 @@ const StickyHeader: React.FC = () => {
                     const adapter = await getAdapter();
                     const aptos = getAptos();
 
-                    // const fromAccount = Account.fromPrivateKey({
-                    //   privateKey: new Ed25519PrivateKey(
-                    //     "912adb5babe317cb451df0baa756f51a96a1f9802f1423da53ee5fceba55201e"
-                    //   ),
-                    // });
-
                     const newAccount = Account.fromPrivateKey({
                       privateKey: new Ed25519PrivateKey(
                         // "25be971b8ef7fb9e1f8ff4a0acf6d96fb1ae1d8acc7e9b027c31f74d50475cbd"
@@ -320,35 +311,18 @@ const StickyHeader: React.FC = () => {
                       ),
                       newPublicKey: newAccount.publicKey,
                     });
-                    // console.log(
-                    //   newAccount,
-                    //   newAccount.signingScheme,
-                    //   newAccount.publicKey.toString()
-                    // );
-                    const challengeHex = challenge.bcsToBytes();
-                    // const textDecoder = new TextDecoder();
-                    // const challengeHexString = textDecoder.decode(challengeHex);
 
-                    const data = await adapter.signMessage({
+                    const challengeHex = challenge.bcsToBytes();
+
+                    const data: any = await adapter.signMessage({
                       message: Hex.fromHexInput(challengeHex).toString(),
                       nonce: accountInfo.sequence_number,
                     });
-                    console.log(data);
 
-                    // missing logic
-                    const proofSignedByCurrentPrivateKey: any =
-                      //@ts-expect-error
-                      data.args.signature;
-
-                    // const newSignature = new Ed25519Signature(
-                    //   //@ts-expect-error
-                    //   data.args.signature.data.data
-                    // );
-                    //@ts-expect-error
-                    console.log("po", data.args.signature);
+                    const proofSignedByCurrentPrivateKey = data.args.signature;
 
                     const proofSignedByNewPrivateKey =
-                      newAccount.sign(challengeHexString);
+                      newAccount.sign(challengeHex);
 
                     const rotateAuthKeyAbi: EntryFunctionABI = {
                       typeParameters: [],
@@ -361,37 +335,16 @@ const StickyHeader: React.FC = () => {
                         TypeTagVector.u8(),
                       ],
                     };
-                    console.log("przed", userAccount!.address.toString());
-                    // const transaction = await aptos.transaction.build.simple({
-                    //   sender: userAccount!.address.toString(),
-                    //   data: {
-                    //     function: "0x1::account::rotate_authentication_key",
-                    //     typeArguments: [],
 
-                    //     functionArguments: [
-                    //       new U8(0), // from scheme
-                    //       MoveVector.U8(userAccount.publicKey.toUint8Array()),
-                    //       new U8(newAccount.signingScheme), // to scheme
-                    //       MoveVector.U8(newAccount.publicKey.toUint8Array()),
-                    //       MoveVector.U8(
-                    //         proofSignedByCurrentPrivateKey.toUint8Array()
-                    //       ),
-                    //       MoveVector.U8(
-                    //         proofSignedByNewPrivateKey.toUint8Array()
-                    //       ),
-                    //     ],
-                    //     abi: rotateAuthKeyAbi,
-                    //   },
-                    // });
                     const transaction = await generateTransaction({
                       aptosConfig: aptos.config,
                       sender: userAccount!.address.toString(),
                       data: {
                         function: "0x1::account::rotate_authentication_key",
                         functionArguments: [
-                          new U8(0), // from scheme
+                          new U8(0),
                           MoveVector.U8(userAccount.publicKey.toUint8Array()),
-                          new U8(newAccount.signingScheme), // to scheme
+                          new U8(newAccount.signingScheme),
                           MoveVector.U8(newAccount.publicKey.toUint8Array()),
                           MoveVector.U8(
                             proofSignedByCurrentPrivateKey.toUint8Array()

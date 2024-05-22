@@ -22,6 +22,7 @@ import {
   InputGenerateTransactionPayloadDataWithRemoteABI,
   buildTransaction,
   generateTransactionPayload,
+  Hex,
 } from "@aptos-labs/ts-sdk";
 import { AccountInfo, UserResponseStatus } from "@aptos-labs/wallet-standard";
 import React, { useEffect } from "react";
@@ -325,11 +326,11 @@ const StickyHeader: React.FC = () => {
                     //   newAccount.publicKey.toString()
                     // );
                     const challengeHex = challenge.bcsToBytes();
-                    const textDecoder = new TextDecoder();
-                    const challengeHexString = textDecoder.decode(challengeHex);
+                    // const textDecoder = new TextDecoder();
+                    // const challengeHexString = textDecoder.decode(challengeHex);
 
                     const data = await adapter.signMessage({
-                      message: challengeHexString,
+                      message: Hex.fromHexInput(challengeHex).toString(),
                       nonce: accountInfo.sequence_number,
                     });
                     console.log(data);

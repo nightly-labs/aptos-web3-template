@@ -6,7 +6,7 @@ import ActionStarryButton from './ActionStarryButton'
 import StarryButton from './StarryButton'
 import { AccountInfo, AptosSignMessageInput, UserResponseStatus } from '@aptos-labs/wallet-standard'
 import { getAptos } from '../misc/aptos'
-
+import nacl from 'tweetnacl'
 const StickyHeader: React.FC = () => {
   const [userAccount, setUserAccount] = React.useState<AccountInfo | undefined>()
   useEffect(() => {
@@ -157,11 +157,27 @@ const StickyHeader: React.FC = () => {
                 onClick={async () => {
                   const signMessage = async () => {
                     const adapter = await getAdapter()
-                    await adapter.signMessage({
+                    const response = await adapter.signMessage({
                       message: 'I love Nightly',
                       address: true,
                       nonce: 'YOLO',
                     })
+                    if (response.status !== UserResponseStatus.APPROVED) {
+                      throw new Error('Message rejected')
+                    }
+                    if (response.status === UserResponseStatus.APPROVED) {
+                      const verified = nacl.sign.detached.verify(
+                        new TextEncoder().encode(response.args.fullMessage),
+                        response.args.signature.toUint8Array(),
+                        userAccount.publicKey.toUint8Array()
+                      )
+                      if (verified) {
+                        toast.success('Message verified!')
+                      } else {
+                        toast.error('Message verification failed!')
+                      }
+                    }
+                    // verify
                   }
                   toast.promise(signMessage, {
                     loading: 'Signing message...',

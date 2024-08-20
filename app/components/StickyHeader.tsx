@@ -11,6 +11,7 @@ import {
 } from "@aptos-labs/wallet-standard";
 import { getAptos } from "../misc/aptos";
 import nacl from "tweetnacl";
+import { Ed25519Signature, Hex } from "@aptos-labs/ts-sdk";
 const StickyHeader: React.FC = () => {
   const [userAccount, setUserAccount] = React.useState<
     AccountInfo | undefined
@@ -173,22 +174,33 @@ const StickyHeader: React.FC = () => {
                       nonce: "YOLO",
                     });
                     if ("signature" in response) {
-                      if (!response.signature)
+                      if (!response.signature) {
                         throw new Error("Message rejected");
+                      }
                     } else {
-                      if (response.status !== UserResponseStatus.APPROVED)
+                      if (response.status !== UserResponseStatus.APPROVED) {
                         throw new Error("Message rejected");
+                      }
                     }
 
                     if (response.status === UserResponseStatus.APPROVED) {
-                      const verified = nacl.sign.detached.verify(
-                        new TextEncoder().encode(response.args.fullMessage),
-                        response.args.signature.toUint8Array(),
-                        userAccount.publicKey.toUint8Array()
-                      );
-                      if (verified) {
-                        toast.success("Message verified!");
-                      } else {
+                      try {
+                        const verified = nacl.sign.detached.verify(
+                          new TextEncoder().encode(response.args.fullMessage),
+                          new Uint8Array(
+                            // @ts-expect-error
+                            Object.values(response.args.signature.data.data)
+                          ),
+                          userAccount.publicKey.toUint8Array()
+                        );
+
+                        if (verified) {
+                          toast.success("Message verified!");
+                        } else {
+                          throw new Error("No verification");
+                        }
+                      } catch (error) {
+                        console.log(error);
                         toast.error("Message verification failed!");
                       }
                     }

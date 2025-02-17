@@ -11,7 +11,11 @@ import {
 } from "@aptos-labs/wallet-standard";
 import { getAptos } from "../misc/aptos";
 import nacl from "tweetnacl";
-import { Ed25519Signature, Hex } from "@aptos-labs/ts-sdk";
+import {
+  Ed25519Signature,
+  Hex,
+  InputGenerateTransactionPayloadData,
+} from "@aptos-labs/ts-sdk";
 const StickyHeader: React.FC = () => {
   const [userAccount, setUserAccount] = React.useState<
     AccountInfo | undefined
@@ -101,20 +105,17 @@ const StickyHeader: React.FC = () => {
                 onClick={async () => {
                   const signTransaction = async () => {
                     const adapter = await getAdapter();
-                    const aptos = getAptos();
-                    const transaction = await aptos.transaction.build.simple({
-                      sender: userAccount!.address.toString(),
-                      data: {
-                        function: "0x1::coin::transfer",
-                        typeArguments: ["0x1::aptos_coin::AptosCoin"],
-                        functionArguments: [
-                          "0x7d6735f1d1b158ea340f252e0d30c4ab5596fc12bbf5267f43ac45989b9fd520",
-                          100,
-                        ],
-                      },
-                    });
+                    const payload: InputGenerateTransactionPayloadData = {
+                      function: "0x1::coin::transfer",
+                      typeArguments: ["0x1::aptos_coin::AptosCoin"],
+                      functionArguments: [
+                        "0x7d6735f1d1b158ea340f252e0d30c4ab5596fc12bbf5267f43ac45989b9fd520",
+                        100,
+                      ],
+                    };
+
                     const signedTx = await adapter.signAndSubmitTransaction({
-                      rawTransaction: transaction.rawTransaction,
+                      payload,
                     });
                     if (signedTx.status !== UserResponseStatus.APPROVED) {
                       throw new Error("Transaction rejected");
@@ -146,9 +147,7 @@ const StickyHeader: React.FC = () => {
                         ],
                       },
                     });
-                    const signedTx = await adapter.signTransaction({
-                      rawTransaction: transaction.rawTransaction,
-                    });
+                    const signedTx = await adapter.signTransaction(transaction);
                     if (signedTx.status !== UserResponseStatus.APPROVED) {
                       throw new Error("Transaction rejected");
                     }
